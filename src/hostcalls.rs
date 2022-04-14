@@ -726,6 +726,29 @@ pub fn send_http_response(
     }
 }
 
+pub fn send_grpc_response(
+    status_code: u8,
+    headers: Vec<(&str, &str)>,
+    body: Option<&[u8]>,
+) -> Result<(), Status> {
+    let serialized_headers = utils::serialize_map(headers);
+    unsafe {
+        match proxy_send_local_response(
+            200,
+            null(),
+            0,
+            body.map_or(null(), |body| body.as_ptr()),
+            body.map_or(0, |body| body.len()),
+            serialized_headers.as_ptr(),
+            serialized_headers.len(),
+            status_code.into(),
+        ) {
+            Status::Ok => Ok(()),
+            status => panic!("unexpected status: {}", status as u32),
+        }
+    }
+}
+
 extern "C" {
     fn proxy_http_call(
         upstream_data: *const u8,
